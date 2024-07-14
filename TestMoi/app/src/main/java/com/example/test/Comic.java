@@ -34,6 +34,12 @@ public class Comic {
         // Default constructor
     }
 
+    public Comic(int Id, byte[] Img, String title) {
+        this.Id = Id;
+        this.Img = Img;
+        this.Title = title;
+    }
+
     public byte[] getImg() {
         return Img;
     }

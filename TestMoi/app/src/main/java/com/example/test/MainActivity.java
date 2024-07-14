@@ -178,33 +178,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private RecyclerView recyclerView;
+
+    private RecyclerView rcvAllComics;
+    private RecyclerView rcvFavorite;
     private ComicAdapter comicAdapter;
     private DBContext dbContext;
-    private Context context;
-    ImageButton imageButton;
-    ArrayList<String> imgList = new ArrayList<>();
-    ArrayList<String> titleList = new ArrayList<>();
-
+    private SearchView searchView;
+    private FavoriteComicAdapter favoriteComicAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         dbContext = new DBContext(this);
-        SQLiteDatabase db = dbContext.getWritableDatabase();
-        Toolbar toolbar = findViewById(R.id.toolbar); // Find the Toolbar from your layout
-        setSupportActionBar(toolbar); // Set the toolbar as the support action bar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         bindingView();
         initRecyclerView();
-        dbContext = new DBContext(this);
+
+        // Insert initial data for testing (optional)
         byte[] imageBytes = getByteArrayFromDrawable(R.drawable.img2);
         dbContext.insertComic("Comic Title", "Description", "Author", "Detail", "2024-07-14", imageBytes, 1);
-        initRecyclerView();
-
-
-
-
 
         SearchView searchView = findViewById(R.id.search_view);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -221,17 +217,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Load initial data if necessary
+        // Load initial data
         updateRecyclerView("");
     }
+
     private void updateRecyclerView(String searchTerm) {
         Cursor cursor = dbContext.searchComicByTitle(searchTerm);
         List<Comic> comicsList = new ArrayList<>();
 
         if (cursor.moveToFirst()) {
             do {
-                String title = cursor.getString(cursor.getColumnIndexOrThrow(dbContext.COLUMN_COMIC_TITLE));
-                byte[] imgBytes = cursor.getBlob(cursor.getColumnIndexOrThrow(dbContext.COLUMN_COMIC_IMG));
+                byte[] imgBytes = cursor.getBlob(cursor.getColumnIndexOrThrow(DBContext.COLUMN_COMIC_IMG));
+                String title = cursor.getString(cursor.getColumnIndexOrThrow(DBContext.COLUMN_COMIC_TITLE));
+
                 Comic comic = new Comic(imgBytes, title);
                 comicsList.add(comic);
             } while (cursor.moveToNext());
@@ -240,21 +238,35 @@ public class MainActivity extends AppCompatActivity {
 
         comicAdapter.updateList(comicsList);
     }
-    private void insertCatogories(SQLiteDatabase db, String title) {
-        ContentValues values = new ContentValues();
-        values.put("title", title);
 
-        db.insert("categories", null, values);
-    }
     private void initRecyclerView() {
+        // Initialize RecyclerView for all comics using the global comicAdapter
         comicAdapter = new ComicAdapter(this);
-        recyclerView.setAdapter(comicAdapter);
-        recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
+        rcvAllComics.setAdapter(comicAdapter);
+        rcvAllComics.setLayoutManager(new GridLayoutManager(this, 3));
         comicAdapter.setData(getListComic());
+
+        // Initialize RecyclerView for favorite comics using the global favoriteComicAdapter
+        favoriteComicAdapter = new FavoriteComicAdapter(this);
+        rcvFavorite.setAdapter(favoriteComicAdapter);
+        rcvFavorite.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        updateFavoriteComicList();
     }
 
+    private void updateFavoriteComicList() {
+        // Update RecyclerView for favorite comics
+        List<Comic> favoriteComicsList = getFavoriteComics();
+        favoriteComicAdapter.setData(favoriteComicsList);
+    }
+
+    private List<Comic> getFavoriteComics() {
+        // Retrieve favorite comics from database
+        return dbContext.getFavoriteComics();
+    }
     private void bindingView() {
-        recyclerView = findViewById(R.id.rcv);
+        rcvAllComics = findViewById(R.id.rcv);
+        rcvFavorite = findViewById(R.id.rcv_favorite);
+        searchView = findViewById(R.id.search_view);
     }
 
     public List<Comic> getListComic() {
@@ -280,4 +292,23 @@ public class MainActivity extends AppCompatActivity {
         return stream.toByteArray();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.menu_login) {
+            navigateToLogin();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void navigateToLogin() {
+        Intent intent = new Intent(this, Login.class);
+        startActivity(intent);
+    }
 }

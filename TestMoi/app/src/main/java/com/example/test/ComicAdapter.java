@@ -25,17 +25,15 @@ public class ComicAdapter extends RecyclerView.Adapter<ComicAdapter.ComicViewHol
 
     private Context context;
     private List<Comic> comics;
-    private OnComicClickListener listener;
-
-    public interface OnComicClickListener {
-        void onComicClicked(Comic comic);
-    }
 
     public ComicAdapter(Context context) {
         this.context = context;
     }
 
     public void updateList(List<Comic> newComicsList) {
+        if (comics == null) {
+            comics = new ArrayList<>();
+        }
         comics.clear(); // Clear existing list
         comics.addAll(newComicsList); // Add new data to list
         notifyDataSetChanged(); // Notify RecyclerView that dataset has changed
@@ -62,18 +60,25 @@ public class ComicAdapter extends RecyclerView.Adapter<ComicAdapter.ComicViewHol
             // Set a default image if no image data
             holder.imgProduct.setImageResource(R.drawable.img2);
         }
-    }
 
-    public void setData(List<Comic> list) {
-        this.comics = list;
-        notifyDataSetChanged();
+        holder.button1.setOnClickListener(v -> {
+            Intent intent = new Intent(context, DetailActivity.class);
+            intent.putExtra("comicId", comic.getId());
+            intent.putExtra("title", comic.getTitle());
+            intent.putExtra("description", comic.getDescription());
+            intent.putExtra("image", comic.getImg());
+            context.startActivity(intent);
+        });
     }
 
     @Override
     public int getItemCount() {
         return comics == null ? 0 : comics.size();
     }
-
+    public void setData(List<Comic> list) {
+        this.comics = list;
+        notifyDataSetChanged();
+    }
     public static class ComicViewHolder extends RecyclerView.ViewHolder {
         private ImageButton imgProduct;
         private TextView tvName;

@@ -123,7 +123,7 @@ public class DBContext extends SQLiteOpenHelper {
 
     // Comic table
     public static final String TABLE_COMIC = "comic";
-    private static final String COLUMN_COMIC_ID = "id";
+    public static final String COLUMN_COMIC_ID = "id";
     public static final String COLUMN_COMIC_TITLE = "title";
     private static final String COLUMN_COMIC_DESCRIPTION = "description";
     private static final String COLUMN_COMIC_AUTHOR = "author";
@@ -164,7 +164,7 @@ public class DBContext extends SQLiteOpenHelper {
             COLUMN_COMIC_AUTHOR + " TEXT, " +
             COLUMN_COMIC_DETAIL + " TEXT, " +
             COLUMN_COMIC_DATEPLUBLIC + " TEXT, " +
-            COLUMN_COMIC_IMG + " TEXT, " + // Change to BLOB for image storage
+            COLUMN_COMIC_IMG + " TEXT, " +
             COLUMN_COMIC_CATEGORIES + " INTEGER" + ")";
 
     private static final String CREATE_TABLE_FAVORITE_COMIC = "CREATE TABLE " + TABLE_FAVORITE_COMIC + "(" +
@@ -272,6 +272,40 @@ public class DBContext extends SQLiteOpenHelper {
     public Cursor getData() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_USER, null);
+    }
+    public boolean addToFavorite(int userId, int comicId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_FAVORITE_COMIC_IDUSER, userId);
+        contentValues.put(COLUMN_FAVORITE_COMIC_IDCOMIC, comicId);
+        long result = db.insert(TABLE_FAVORITE_COMIC, null, contentValues);
+        if (result == -1) {
+            Log.e("addToFavorite", "Failed to insert favorite comic: userId = " + userId + ", comicId = " + comicId);
+        } else {
+            Log.d("addToFavorite", "Inserted favorite comic: userId = " + userId + ", comicId = " + comicId);
+        }
+        return result != -1; // returns false if insert fails
+    }
+    public List<Comic> getFavoriteComics() {
+        List<Comic> favoriteComics = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String query = "SELECT c." + COLUMN_COMIC_ID + ", c." + COLUMN_COMIC_IMG + ", c." + COLUMN_COMIC_TITLE +
+                " FROM " + TABLE_COMIC + " c " +
+                " INNER JOIN " + TABLE_FAVORITE_COMIC + " fc ON c." + COLUMN_COMIC_ID + " = fc." + COLUMN_FAVORITE_COMIC_IDCOMIC;
+
+        Cursor cursor = db.rawQuery(query, null);
+        if (cursor.moveToFirst()) {
+            do {
+                int comicId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_COMIC_ID));
+                byte[] imgBytes = cursor.getBlob(cursor.getColumnIndexOrThrow(COLUMN_COMIC_IMG));
+                String title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_COMIC_TITLE));
+                Comic comic = new Comic(comicId, imgBytes, title);
+                favoriteComics.add(comic);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return favoriteComics;
     }
 }
 
